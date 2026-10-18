@@ -59,3 +59,10 @@ Manual checks:
 
 ## Deviations from plan
 
+- Fresh-clone check covered the local quick start only (`uv sync`, `uv run pytest`, `main.py`, upload → `done`),
+  on port 8010 and with the model already in the Hugging Face cache. The Docker commands were not re-run from the
+  clone. Why: the user's local server and the step 7 container were occupying port 8000, and the Docker commands
+  are the same ones verified in step 7. `docker compose build --build-arg WHISPER_MODEL=base` was checked only for
+  flag support, not built.
+- README additions beyond the planned sections: a port-clash warning (found in step 7), the test fixture as a
+  ready-made clip, the path-traversal test (step 3), and "remove the `av<19` pin" under next steps (step 6).
