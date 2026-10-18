@@ -65,3 +65,11 @@ Manual check instead: in `uv run python`, `media.validate(Path("some.wav"), 20)`
 
 ## Deviations from plan
 
+- Added one automated test, `tests/test_storage.py::test_save_keeps_files_inside_uploads` (parametrised over
+  `../../etc/passwd`, `../../evil.wav`, `a.b.MP3`, `weird.ext$%`, `noext`), written first. Why: decided with the user
+  before implementation — path traversal is the one security-relevant behaviour that the step 4 API tests don't
+  cover (they only upload ordinary filenames). Video-without-audio stays a manual check.
+- The uploads folder name is a module constant `UPLOADS_DIR = "uploads"` in `app/storage.py`, and the unused
+  `Settings.uploads_dir` property from step 1 was removed. Why: review feedback — the value was hard-coded inside
+  `save()` and duplicated in `Settings`; it is an internal storage detail (part of the paths stored in the DB), not
+  operator configuration, so it lives once in the module that owns it.

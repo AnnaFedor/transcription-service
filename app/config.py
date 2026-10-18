@@ -21,10 +21,6 @@ class Settings(BaseSettings):
     port: int = 8000
 
     @property
-    def uploads_dir(self) -> Path:
-        return self.data_dir / "uploads"
-
-    @property
     def db_path(self) -> Path:
         return self.data_dir / "db" / "app.sqlite"
 
