@@ -1,15 +1,40 @@
 import math
 import struct
+import threading
 import wave
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.api import create_app
 from app.config import Settings
+from app.relay import OutboxRelay
 from app.repository import TaskRepository
 from app.storage import FileStorage
+from app.task_queue import InMemoryTaskQueue
+from app.transcriber import Segment, TranscriptionResult
+from app.worker import TranscriptionWorker
+
+
+class FakeTranscriber:
+    """Stands in for Whisper: records calls and returns a fixed result, or raises `error` if set."""
+
+    result = TranscriptionResult(
+        text="Hallo Welt", segments=[Segment(0.0, 1.5, "Hallo Welt")], language="de", duration=2.0
+    )
+
+    def __init__(self):
+        self.calls: list[tuple[Path, str | None]] = []
+        self.error: Exception | None = None
+
+    def transcribe(self, path: Path, language: str | None) -> TranscriptionResult:
+        assert path.is_file(), f"worker passed a missing file: {path}"
+        self.calls.append((path, language))
+        if self.error:
+            raise self.error
+        return self.result
 
 
 @pytest.fixture
@@ -48,3 +73,26 @@ def storage(tmp_path):
 @pytest.fixture
 def client(settings, repository, storage):
     return TestClient(create_app(settings, repository, storage))
+
+
+@pytest.fixture
+def pipeline(settings, repository, storage):
+    queue = InMemoryTaskQueue()
+    stop_event = threading.Event()
+    transcriber = FakeTranscriber()
+    relay = OutboxRelay(repository, queue, poll_interval=0.05, stop_event=stop_event)
+    worker = TranscriptionWorker(repository, storage, queue, transcriber, stop_event, get_timeout=0.05)
+    threads = [threading.Thread(target=relay.run, daemon=True), threading.Thread(target=worker.run, daemon=True)]
+    for thread in threads:
+        thread.start()
+
+    yield SimpleNamespace(
+        client=TestClient(create_app(settings, repository, storage)),
+        transcriber=transcriber,
+        relay_thread=threads[0],
+        worker_thread=threads[1],
+    )
+
+    stop_event.set()
+    for thread in threads:
+        thread.join(timeout=2)

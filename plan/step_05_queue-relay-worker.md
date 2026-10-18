@@ -93,3 +93,7 @@ Red state: `ImportError` for `app.task_queue`, `app.relay`, `app.worker`, `app.t
 
 ## Deviations from plan
 
+- The worker replaces the absolute upload path in the stored error message with the task's original filename
+  (`FileNotFoundError: … 'Meeting Notes.wav'` instead of `/…/data/uploads/<id>.wav`). Why: the error is returned to
+  API clients by the status and `409` result responses; same reasoning as the `InvalidMedia` message fix in step 3.
+  The full exception incl. path is still logged.
