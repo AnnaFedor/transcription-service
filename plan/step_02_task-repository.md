@@ -105,3 +105,12 @@ Red state: `ImportError` for `app.repository`.
 
 ## Deviations from plan
 
+- Added `pythonpath = ["."]` to `[tool.pytest.ini_options]` in `pyproject.toml` (not in step 1's config). Why: the
+  project is not installed as a package (`uv init --bare`), so pytest could not import `app` from `tests/` and the
+  first red run failed with `No module named 'app'` instead of the expected missing `app.repository`.
+- `test_create_task_is_atomic` makes the **outbox** insert fail (a SQLite trigger raising `ABORT`) instead of reusing
+  a duplicate `task_id`, and asserts that no task row was left behind. Why: with a duplicate id the *first* insert
+  fails, so the test passed even without a transaction. Verified by mutation: removing the transaction from
+  `create_task` makes the new test fail with an orphaned task row.
+- `mark_processing` returns the updated `Task` (the plan only specified this in step 5's worker description). Why:
+  the worker needs `file_path` and `language` right after the transition; returning it avoids a second query.
