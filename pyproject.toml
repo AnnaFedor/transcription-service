@@ -3,6 +3,8 @@ name = "transcription-service"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    # faster-whisper 1.2.1 calls av.open(..., metadata_errors=...), which PyAV 19 removed. Drop the cap once fixed upstream.
+    "av>=15,<19",
     "fastapi>=0.143.5",
     "faster-whisper>=1.2.1",
     "pydantic-settings>=2.16.0",

@@ -83,3 +83,8 @@ Manual verification checklist (differences recorded under Deviations):
 
 ## Deviations from plan
 
+- Added `av>=15,<19` as a direct dependency in `pyproject.toml` (installs PyAV 18.1.0 instead of 19.0.1). Why: the
+  first manual run failed every transcription with `TypeError: open() got an unexpected keyword argument
+  'metadata_errors'` — faster-whisper 1.2.1 (latest release) passes that keyword to `av.open`, PyAV 19 removed it,
+  and faster-whisper declares only `av>=11`. Verified PyAV 15–18 accept it. Pin chosen over decoding audio ourselves
+  (decided with the user); remove the cap once faster-whisper is fixed upstream.
