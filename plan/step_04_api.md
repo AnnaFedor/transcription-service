@@ -91,3 +91,7 @@ Red state: `ImportError` for `app.api`.
 
 ## Deviations from plan
 
+- `test_upload_valid_clip` is parametrised over a generated WAV **and** a real file, `tests/fixtures/honigbienen_de.mp4`
+  (7.8 s German speech, audio-only MP4/AAC, 30 KB), moved there from the project root. Why: the user provided the
+  sample; it checks validation on a real container format, not only on generated WAV. This adds one committed
+  binary fixture, contrary to the overview's "no binary fixtures" note — acceptable at 30 KB.
