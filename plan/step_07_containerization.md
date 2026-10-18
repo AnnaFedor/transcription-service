@@ -102,3 +102,19 @@ Notes:
 
 ## Deviations from plan
 
+- Multi-arch prerequisite checked via `uv.lock` instead of a `docker buildx --platform linux/amd64,linux/arm64`
+  build: `ctranslate2` 4.8.3, `av` 18.1.0, `onnxruntime` 1.31.0 and `tokenizers` 0.23.3 all have `manylinux` wheels
+  for both `x86_64` and `aarch64` on Python 3.13. Only the native `linux/arm64` image was built. Why: an emulated
+  amd64 build including the model download is slow, and the only realistic failure (missing native wheels) is
+  answered by the lockfile.
+- uv image pinned to `ghcr.io/astral-sh/uv:0.11.16` (the version that wrote `uv.lock`), not the latest (0.13.1);
+  `.python-version` is copied and `UV_PYTHON_DOWNLOADS=never` set so uv uses the image's Python 3.13. Why: the plan
+  left the version open; matching the lockfile's uv avoids format surprises.
+- Model stage adds `chmod -R a+rX /models`. Why: the first container start logged `Permission denied` on a Hugging
+  Face cache metadata file — the download runs as root and leaves it `0600`, unreadable for the non-root `app` user.
+- Image size: layers total ≈ 1.0 GB as planned (model 486 MB, venv 367 MB, Debian + Python ≈ 160 MB);
+  `docker image ls` shows 1.62 GB because Docker Desktop's image store also counts the compressed layers.
+- Manual checks first hit the wrong server: a local `uv run python main.py` was still listening on
+  `127.0.0.1:8000`, and `curl localhost:8000` prefers it over Docker's `*:8000`. Re-ran pipeline, validation,
+  persistence and teardown against `http://[::1]:8000` (Docker only) and confirmed each request in the container log.
+  Worth a note in the README (step 8): stop the local server before using the container on the same port.
